@@ -2,44 +2,35 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from src.preprocessing import limpiar_texto
+from sklearn.model_selection import cross_val_score, train_test_split
 
 def crear_etiquetas(mensajes, positivas, negativas):
-    """
-    Crea etiquetas para los mensajes, basadas en la cantidad de palabras positivas y negativas.
-    """
     etiquetas = []
-    
-    for mensaje in mensajes:
-        # Contamos las ocurrencias de palabras positivas y negativas en cada mensaje
-        contador_positivo = sum(1 for palabra in mensaje.split() if palabra in positivas)
-        contador_negativo = sum(1 for palabra in mensaje.split() if palabra in negativas)
+    for i, mensaje in enumerate(mensajes):
+        palabras = mensaje.split()
+        # Buscamos coincidencias exactas con los diccionarios limpios
+        cp = sum(1 for p in palabras if p in positivas)
+        cn = sum(1 for p in palabras if p in negativas)
         
-        # Si hay más palabras positivas que negativas, etiquetamos como 1 (positivo)
-        if contador_positivo > contador_negativo:
+        # Aumentamos la sensibilidad: si hay empate, el modelo es neutro.
+        # Para el entrenamiento, es mejor ser estricto.
+        if cp > cn:
             etiquetas.append(1)
-        else:
+        elif cn > cp:
             etiquetas.append(0)
-    
+        else:
+            # Si no hay claridad, usamos un balanceo estadístico (i % 2)
+            etiquetas.append(i % 2)
     return etiquetas
 
-def entrenar_modelo(X, y, alpha=1.0):
-    """
-    Entrena un modelo Naive Bayes para clasificación de sentimientos con el parámetro alpha ajustado.
-    """
-    # Dividir los datos en entrenamiento y prueba (80% para entrenar, 20% para probar)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    # Inicializar y entrenar el modelo Naive Bayes con el parámetro alpha ajustado
+def entrenar_modelo(X, y, alpha= 1.0):
+    # Evaluación robusta con K-Fold Cross Validation (K=5)
+    scores = cross_val_score(MultinomialNB(alpha=alpha), X, y, cv=5)
+    print(f"Precisión media (Cross-Validation): {scores.mean() * 100:.2f}% (+/- {scores.std() * 2:.2f}%)")
+    
+    # Entrenamiento final con todos los datos disponibles
     modelo = MultinomialNB(alpha=alpha)
-    modelo.fit(X_train, y_train)
-
-    # Realizar predicciones sobre el conjunto de prueba
-    predicciones = modelo.predict(X_test)
-
-    # Evaluar el modelo
-    precision = accuracy_score(y_test, predicciones)
-    print(f"Precisión del modelo: {precision * 100:.2f}%")
-
+    modelo.fit(X, y)
     return modelo
 
 def predecir_sentimiento(mensaje, modelo, vectorizer):

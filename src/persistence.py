@@ -1,64 +1,39 @@
 import os
 import joblib
-from sklearn.feature_extraction.text import CountVectorizer
 
 def guardar_modelo(modelo, vectorizer, nombre_modelo='sentiment_model.joblib', nombre_vectorizer='vectorizer.joblib'):
     """
-    Guarda el modelo y el vectorizador usando joblib.
+    Guarda el modelo entrenado y el vectorizador (TF-IDF/BoW) en la carpeta models.
     """
-    # Asegurar que los archivos se guarden en la carpeta models por defecto
-    if nombre_modelo == 'sentiment_model.joblib':
-        nombre_modelo = os.path.join('models', 'sentiment_model.joblib')
-    if nombre_vectorizer == 'vectorizer.joblib':
-        nombre_vectorizer = os.path.join('models', 'vectorizer.joblib')
+    # Definir rutas absolutas/relativas a la carpeta models
+    ruta_modelo = os.path.join('models', nombre_modelo)
+    ruta_vec = os.path.join('models', nombre_vectorizer)
 
     # Crear directorio si no existe
-    dir_model = os.path.dirname(nombre_modelo)
-    if dir_model:
-        os.makedirs(dir_model, exist_ok=True)
+    os.makedirs('models', exist_ok=True)
 
-    joblib.dump(modelo, nombre_modelo)
-    joblib.dump(vectorizer, nombre_vectorizer)
-    print(f"Modelo y vectorizador guardados como {nombre_modelo} y {nombre_vectorizer}")
+    try:
+        joblib.dump(modelo, ruta_modelo)
+        joblib.dump(vectorizer, ruta_vec)
+        print(f"[SUCCESS] Modelo y vectorizador exportados a la carpeta 'models/'")
+    except Exception as e:
+        print(f"[ERROR] No se pudo guardar el modelo: {e}")
 
 def cargar_modelo(nombre_modelo='sentiment_model.joblib', nombre_vectorizer='vectorizer.joblib'):
     """
-    Carga el modelo y el vectorizador desde los archivos guardados.
+    Carga los artefactos necesarios para la inferencia.
     """
-    # Intentar cargar desde models/ por defecto
-    if nombre_modelo == 'sentiment_model.joblib':
-        candidate_model = os.path.join('models', 'sentiment_model.joblib')
-        if os.path.exists(candidate_model):
-            nombre_modelo = candidate_model
-    if nombre_vectorizer == 'vectorizer.joblib':
-        candidate_vec = os.path.join('models', 'vectorizer.joblib')
-        if os.path.exists(candidate_vec):
-            nombre_vectorizer = candidate_vec
+    ruta_modelo = os.path.join('models', nombre_modelo)
+    ruta_vec = os.path.join('models', nombre_vectorizer)
 
-    modelo = joblib.load(nombre_modelo)
-    vectorizer = joblib.load(nombre_vectorizer)
-    print(f"Modelo y vectorizador cargados desde {nombre_modelo} y {nombre_vectorizer}")
-    return modelo, vectorizer
+    if not os.path.exists(ruta_modelo) or not os.path.exists(ruta_vec):
+        raise FileNotFoundError(f"No se encontraron los archivos en {ruta_modelo} o {ruta_vec}. Ejecuta train.py primero.")
 
-def guardar_boW_features(features, filename='data/processed/bow_features.pkl'):
-    """
-    Guarda las características BoW procesadas en un archivo.
-    """
-    dirpath = os.path.dirname(filename)
-    if dirpath:
-        os.makedirs(dirpath, exist_ok=True)
-
-    joblib.dump(features, filename)
-    print(f"Características BoW guardadas en {filename}")
-    
-def obtener_bow(mensajes):
-    """
-    Convierte una lista de mensajes en una matriz de características usando Bag of Words (BoW).
-    """
-    vectorizer = CountVectorizer()
-    X = vectorizer.fit_transform(mensajes)  # Convierte los mensajes a BoW
-
-    # Guardar las características BoW procesadas
-    guardar_boW_features(X)
-
-    return X, vectorizer
+    try:
+        modelo = joblib.load(ruta_modelo)
+        vectorizer = joblib.load(ruta_vec)
+        print(f"[INFO] Artefactos cargados correctamente.")
+        return modelo, vectorizer
+    except Exception as e:
+        print(f"[ERROR] Error al cargar los archivos .joblib: {e}")
+        raise

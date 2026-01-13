@@ -1,12 +1,18 @@
-# src/features.py
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
 
-def obtener_bow(mensajes):
-    """
-    Convierte una lista de mensajes en una matriz de características usando Bag of Words (BoW).
-    """
-    # Usamos n-gramas de tamaño 1 y 2 (unigramas y bigramas)
-    vectorizer = CountVectorizer(stop_words='english', ngram_range=(1, 2), max_features=1000)
-    X = vectorizer.fit_transform(mensajes)  # Convierte los mensajes a BoW
+# Puedes definir una lista manual o usar una librería
+stop_words_es = ['me', 'siento', 'muy', 'un', 'el', 'la', 'de','demasiado'] 
 
+def obtener_features(mensajes):
+ 
+    vectorizer = TfidfVectorizer(
+        ngram_range=(1, 2),        # Solo unigramas y bigramas (más estable)
+        stop_words=stop_words_es, # Ignora el ruido de palabras frecuentes
+        max_features=800,          # Reducimos para concentrar la 'inteligencia'
+        sublinear_tf=True, 
+        strip_accents='unicode',
+        min_df=2,                  # DESCARTA palabras que solo salen 1 vez (limpia el ruido)
+        max_df=0.8                 # Descarta palabras demasiado comunes
+    )
+    X = vectorizer.fit_transform(mensajes)
     return X, vectorizer

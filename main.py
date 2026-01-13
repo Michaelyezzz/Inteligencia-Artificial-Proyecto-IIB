@@ -1,35 +1,40 @@
 # main.py
-from src.model_nb import predecir_sentimiento
-from src.persistence import cargar_modelo
-from src.io_data import cargar_palabras, cargar_mensajes
-from src.preprocessing import limpiar_texto
-from src.features import obtener_bow
-from src.model_nb import crear_etiquetas, entrenar_modelo
-from src.persistence import guardar_modelo
+import os
+import sys
+import tkinter as tk
+from gui.app import AppSentimientos
 
-# Cargar los archivos de palabras y mensajes
-positivas = cargar_palabras('data/raw/positivas.txt')
-negativas = cargar_palabras('data/raw/negativas.txt')
-mensajes = cargar_mensajes('data/raw/mensajes_prueba.txt')
+def launch():
+    """
+    Punto de entrada principal para el Clasificador de Sentimientos.
+    Verifica la existencia del modelo antes de iniciar la interfaz.
+    """
+    print("--- Iniciando Clasificador de Sentimientos ---")
+    
+    # Verificación técnica de artefactos
+    modelo_path = os.path.join('models', 'sentiment_model.joblib')
+    vectorizador_path = os.path.join('models', 'vectorizer.joblib')
+    
+    if not os.path.exists(modelo_path) or not os.path.exists(vectorizador_path):
+        print("[ERROR] No se detectó un modelo entrenado.")
+        print("Por favor, ejecuta 'python train.py' para generar los archivos necesarios.")
+        return
 
-# Limpiar los mensajes
-mensajes_limpios = [limpiar_texto(mensaje) for mensaje in mensajes]
+    # Iniciar la interfaz gráfica
+    root = tk.Tk()
+    app = AppSentimientos(root)
+    # Centrar la ventana en la pantalla
+    root.update_idletasks()
+    w = root.winfo_width()
+    h = root.winfo_height()
+    if w <= 1 and h <= 1:
+        w = root.winfo_reqwidth()
+        h = root.winfo_reqheight()
+    x = (root.winfo_screenwidth() // 2) - (w // 2)
+    y = (root.winfo_screenheight() // 2) - (h // 2)
+    root.geometry(f"{w}x{h}+{x}+{y}")
 
-# Crear las etiquetas para los mensajes (positivo=1, negativo=0)
-etiquetas = crear_etiquetas(mensajes_limpios, positivas, negativas)
+    root.mainloop()
 
-# Obtener la representación BoW de los mensajes limpios
-X, vectorizer = obtener_bow(mensajes_limpios)
-
-# Entrenar el modelo Naive Bayes con alpha ajustado
-modelo = entrenar_modelo(X, etiquetas, alpha=0.5)
-
-# Guardar el modelo y el vectorizador
-guardar_modelo(modelo, vectorizer)
-
-# Cargar el modelo y el vectorizador guardados
-modelo_cargado, vectorizer_cargado = cargar_modelo()
-
-# Hacer una predicción sobre un mensaje de ejemplo
-mensaje = "Me siento increíblemente feliz con el resultado"
-predecir_sentimiento(mensaje, modelo_cargado, vectorizer_cargado)
+if __name__ == "__main__":
+    launch()
